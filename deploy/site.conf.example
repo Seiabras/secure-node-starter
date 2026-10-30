@@ -1,0 +1,9 @@
+# Copy to deploy/site.conf and fill in. Read by install-once.sh and receive.sh on the server.
+# It holds no secret: the secrets live in $BASE/.env on the server, created by install-once.sh.
+SITE=mysite                 # the systemd service name and the folder under /opt
+SITE_USER=mysite            # the Unix user that runs the site (no sudo, no password)
+BASE=/opt/mysite            # app/ (code), data/ (database), .env
+PORT=8101                   # Node listens on 127.0.0.1 only; Caddy is the one facing the internet
+DOMAIN=example.com          # Caddy gets the TLS certificate for it
+NAME="My Site"
+BACKUP_HOST=backup.example.net   # optional: the other server that keeps the encrypted copies (offsite-backup/)

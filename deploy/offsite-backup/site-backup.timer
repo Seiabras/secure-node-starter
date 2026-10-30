@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily backup of @SITE@ to the other server
+
+[Timer]
+OnCalendar=*-*-* 07:40:00 UTC
+# spreads several sites on the same server over 40 minutes
+RandomizedDelaySec=40m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,143 @@
+name: CI
+
+# Every push and pull request: the tests on Node 22 and 24, the security-header check, the HTML validator,
+# shellcheck and the systemd sandbox score, a secret scan of the whole history, and an OWASP ZAP baseline scan of
+# the running site. On main, when the deploy variables exist, a green run is delivered to the server.
+#
+# Third-party actions are pinned to a full commit SHA (a tag can be moved; a SHA cannot). Dependabot proposes
+# updates (.github/dependabot.yml). The default token is read-only.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: Tests · Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Tests
+        run: npm test
+      - name: Security headers on every response type
+        run: npm run check:headers
+      - name: HTML validator
+        if: matrix.node == 24
+        run: npm run check:html
+
+  server-config:
+    name: Shell scripts and systemd sandbox
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: shellcheck
+        run: shellcheck deploy/*.sh deploy/offsite-backup/*.sh deploy/offsite-backup/site-backup
+      - name: systemd exposure score must stay at 2.0 or lower
+        run: |
+          sed -e 's|@NAME@|Site|' -e 's|@SITE_USER@|site|' -e 's|@BASE@|/opt/site|g' -e 's|@NODE@|/usr/bin/node|' \
+            deploy/site.service > "$RUNNER_TEMP/site.service"
+          systemd-analyze security --offline=true --threshold=20 "$RUNNER_TEMP/site.service" | tail -1
+
+  secrets:
+    name: Secret scan · gitleaks
+    runs-on: ubuntu-latest
+    env:
+      # the CLI itself (MIT), pinned and checksum-verified, instead of the action (commercial licence)
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the whole history: a secret deleted in a later commit is still leaked
+          persist-credentials: false
+      - name: Install gitleaks
+        run: |
+          curl -fsSLo "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+      - name: Scan every commit
+        run: '"$RUNNER_TEMP/gitleaks" git --redact --verbose --exit-code 1 .'
+
+  zap:
+    name: OWASP ZAP baseline
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Start the site
+        run: |
+          DATA_DIR="$RUNNER_TEMP/data" SITE_URL=http://127.0.0.1:8080 PORT=8080 \
+            nohup node server/server.mjs > "$RUNNER_TEMP/server.log" 2>&1 &
+          for _ in $(seq 1 20); do curl -fsS http://127.0.0.1:8080/api/health && exit 0; sleep 1; done
+          cat "$RUNNER_TEMP/server.log"
+          exit 1
+      # Passive scan of every page the spider finds. Any alert fails the job, except the two documented as INFO in
+      # .zap/rules.tsv. The scanner image (ghcr.io/zaproxy/zaproxy:stable) is not pinned on purpose: new rules arrive
+      # without waiting for a release, and the job holds no secret and a read-only token.
+      - uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
+        with:
+          target: http://127.0.0.1:8080
+          rules_file_name: .zap/rules.tsv
+          fail_action: true
+          allow_issue_writing: false
+          artifact_name: zap-report
+
+  deploy:
+    name: Deploy
+    # only a push to main, only after everything above passed, and only once the repository has a server set up
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_HOST != ''
+    needs: [test, server-config, secrets, zap]
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The key can only run deploy/receive.sh on the server (forced command). The server's host key comes from a
+      # secret saved when the server was set up, never from ssh-keyscan here: that would trust whoever answers.
+      - name: Deliver to the server
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          HOST: ${{ vars.DEPLOY_HOST }}
+          SITE_USER: ${{ vars.DEPLOY_USER }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          tar czf - server public package.json \
+            | ssh -T -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "$SITE_USER@$HOST"
+          rm -f ~/.ssh/deploy
+      - name: Check the live headers
+        if: vars.SITE_URL != ''
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: node scripts/check-headers.mjs "$SITE_URL"

@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Daily copy of @SITE@ to another server with restic: only what changed, encrypted, with versions. Installed as
+# /usr/local/sbin/backup-@SITE@ by prepare-source.sh; run by backup-@SITE@.timer.
+#   backup-@SITE@          makes the copy and prunes old versions (7 daily, 4 weekly, 6 monthly)
+#   backup-@SITE@ verify   restores the latest copy into a temporary folder and checks the databases and files
+set -euo pipefail
+SITE='@SITE@'
+export RESTIC_REPOSITORY="sftp:backup-$SITE:/repo" RESTIC_PASSWORD_FILE="/root/.restic-$SITE"
+export RESTIC_CACHE_DIR="${RESTIC_CACHE_DIR:-/var/cache/restic-$SITE}"
+BASE="/opt/$SITE"
+STATUS="$BASE/backup.json"   # {at, ok, detail}: the admin page can show it (red if failed or older than 36 h)
+SNAP="/var/tmp/backup-$SITE"
+
+status() { printf '{"at":"%s","ok":%s,"detail":"%s"}\n' "$(date -u +%FT%TZ)" "$1" "$2" > "$STATUS.tmp" && chmod 644 "$STATUS.tmp" && mv "$STATUS.tmp" "$STATUS"; }
+
+if [ "${1:-}" = "verify" ]; then
+  T="$(mktemp -d)"
+  trap 'rm -rf "$T"' EXIT
+  restic restore latest --target "$T" >/dev/null
+  for db in "$T$SNAP"/*.db; do
+    [ -f "$db" ] || continue
+    node -e 'const { DatabaseSync } = require("node:sqlite"); console.log(require("node:path").basename(process.argv[1]) + ": " + new DatabaseSync(process.argv[1], { readOnly: true }).prepare("PRAGMA integrity_check").get().integrity_check)' "$db"
+  done
+  echo "files: $(find "$T$BASE/data" -type f 2>/dev/null | wc -l) in the copy, $(find "$BASE/data" -type f ! -name '*.db' ! -name '*.db-wal' ! -name '*.db-shm' | wc -l) on the site (databases apart)"
+  exit 0
+fi
+
+trap 'status false "failed (see journalctl -u backup-$SITE)"' ERR
+# each SQLite database goes out through VACUUM INTO (consistent even while the site writes) into a fixed folder
+install -d -m 700 "$SNAP"
+rm -f "$SNAP"/*.db
+for db in "$BASE"/data/*.db; do
+  [ -f "$db" ] || continue
+  node -e 'const { DatabaseSync } = require("node:sqlite"); new DatabaseSync(process.argv[1], { readOnly: true }).prepare("VACUUM INTO ?").run(process.argv[2])' "$db" "$SNAP/$(basename "$db")"
+done
+# the live database files stay out (their snapshots in $SNAP go in); .env goes in, so a restore is complete
+restic backup --quiet --host "$(hostname)" --tag "$SITE" "$SNAP" "$BASE/data" "$BASE/.env" \
+  --exclude "$BASE/data/**/*.db" --exclude "$BASE/data/**/*.db-wal" --exclude "$BASE/data/**/*.db-shm" \
+  --exclude "$BASE/data/*.db" --exclude "$BASE/data/*.db-wal" --exclude "$BASE/data/*.db-shm"
+restic forget --quiet --tag "$SITE" --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+rm -f "$SNAP"/*.db
+status true "$(restic snapshots --tag "$SITE" --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).length+" versions kept"))')"

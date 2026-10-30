@@ -1,0 +1,61 @@
+# The systemd unit of the site. install-once.sh fills in the @PLACEHOLDERS@ and installs it as
+# /etc/systemd/system/<site>.service. Every line below takes something away from the process; the README shows the
+# exposure score (systemd-analyze security) before and after.
+[Unit]
+Description=@NAME@
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=@SITE_USER@
+Group=@SITE_USER@
+WorkingDirectory=@BASE@/app
+EnvironmentFile=@BASE@/.env
+ExecStart=@NODE@ server/server.mjs
+Restart=always
+RestartSec=2
+
+# Files the site creates are readable only by its own user (without this the database came out 644).
+UMask=0077
+
+# The file system: everything read-only except the data folder. The running app cannot rewrite its own code,
+# so a compromise does not survive a restart. Other users' homes and /root are invisible.
+ProtectSystem=strict
+ReadWritePaths=@BASE@/data
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectProc=invisible
+
+# The kernel: no tunables, modules, logs, clock, hostname or cgroups.
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+
+# Privileges: none to start with, and no way to gain any (setuid binaries, capabilities, new namespaces).
+NoNewPrivileges=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictRealtime=true
+RemoveIPC=true
+PrivateUsers=true
+
+# The network: IPv4, IPv6 and Unix sockets only (no raw sockets, no netlink).
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# System calls: only what an ordinary service needs. MemoryDenyWriteExecute is left out on purpose: the V8 JIT
+# needs writable+executable memory and Node would not start.
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

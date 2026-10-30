@@ -1,0 +1,11 @@
+# Keeps the pinned action SHAs current: one grouped pull request a week. There is no npm ecosystem to watch,
+# because the project has no dependencies.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']

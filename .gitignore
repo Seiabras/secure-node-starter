@@ -1,0 +1,9 @@
+node_modules/
+.env
+local-data/
+*.log
+*.db
+*.db-wal
+*.db-shm
+SECRET-*.txt
+zap-report.*

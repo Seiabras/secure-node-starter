@@ -1,0 +1,51 @@
+name: Backup
+
+# Every day at 06:17 UTC: streams the data folder from the server (deploy/receive.sh backup: read only, databases
+# copied with VACUUM INTO), encrypts it with age to the PUBLIC key in the variable BACKUP_AGE_RECIPIENT and keeps it
+# here as an artifact for 30 days. The private key never touches GitHub, so a leaked token or a malicious workflow
+# change cannot read the backups that already exist.
+#
+# Restore:  age -d -i backup-key.txt data.tar.gz.age | tar xzf - -C restored/
+# Then on the server: systemctl stop <site>; put the files in /opt/<site>/data (owner: the site user, 700/600);
+# systemctl start <site>. Sites with large or growing data use deploy/offsite-backup/ (restic) instead.
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    if: vars.DEPLOY_HOST != '' && vars.BACKUP_AGE_RECIPIENT != ''
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Install age
+        run: sudo apt-get install -y -qq age
+      - name: Fetch and encrypt
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          HOST: ${{ vars.DEPLOY_HOST }}
+          SITE_USER: ${{ vars.DEPLOY_USER }}
+          RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+        run: |
+          set -euo pipefail
+          umask 077
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -T -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "$SITE_USER@$HOST" backup > data.tar.gz
+          rm -f ~/.ssh/deploy
+          tar tzf data.tar.gz > list.txt # no pipe into grep -q: tar would die mid-stream and pipefail would fail the step
+          grep -q . list.txt || { echo "::error::Empty backup."; exit 1; }
+          echo "Backup: $(wc -l < list.txt) entries, $(du -h data.tar.gz | cut -f1)"
+          age -r "$RECIPIENT" -o data.tar.gz.age data.tar.gz
+          shred -u data.tar.gz list.txt
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: backup-${{ github.run_id }}
+          path: data.tar.gz.age
+          retention-days: 30
