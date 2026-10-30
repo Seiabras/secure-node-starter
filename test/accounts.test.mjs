@@ -96,6 +96,26 @@ test('codes per e-mail are limited: one a minute, five an hour', async () => {
   }
 });
 
+test('a stranger cannot lock the owner out: codes count per e-mail and IP, with a total per e-mail', async () => {
+  process.env.TRUST_PROXY = '1';
+  const s = await startServer();
+  const ask = async (ip) => {
+    s.clock.t += MINUTE + 1;
+    return s.post('/api/sign-in/code', { email: 'ida@example.com' }, { 'X-Forwarded-For': ip });
+  };
+  try {
+    for (let i = 0; i < 5; i++) assert.equal((await ask('203.0.113.7')).status, 200);
+    assert.equal((await (await ask('203.0.113.7')).json()).reason, 'too_many_sends');
+    assert.equal((await ask('203.0.113.8')).status, 200, 'the owner, from another address, still gets a code');
+    for (let i = 0; i < 4; i++) assert.equal((await ask('203.0.113.8')).status, 200);
+    for (let i = 0; i < 2; i++) assert.equal((await ask('203.0.113.9')).status, 200);
+    assert.equal((await (await ask('203.0.113.10')).json()).reason, 'too_many_sends', 'and 12 an hour is the total');
+  } finally {
+    delete process.env.TRUST_PROXY;
+    await s.close();
+  }
+});
+
 test('the answer is the same for a new and an existing e-mail (no account enumeration)', async () => {
   const s = await startServer();
   try {

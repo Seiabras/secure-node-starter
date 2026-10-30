@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { HttpError, errorBody, errorPage, newReference, wantsPage } from './errors.mjs';
 import { SECURITY_HEADERS, assertSameOrigin, clientIp, rateKey, readCookie, readJson, sendJson } from './http.mjs';
 import { openDb } from './db.mjs';
-import { createAccounts, rateLimit, SESSION_IDLE_DAYS } from './accounts.mjs';
+import { createAccounts, normalizeEmail, rateLimit, SENDS_PER_HOUR_PER_IP, SESSION_IDLE_DAYS } from './accounts.mjs';
 import { createMailer } from './mail.mjs';
 import { createOrigins } from './origins.mjs';
 import { siteLang, translate } from './i18n.mjs';
@@ -141,10 +141,13 @@ export function createServer({
   const origins = createOrigins({ db, now });
   // generous: on mobile networks many people share one IP; the per-e-mail limit is the real brake
   const codesPerIp = rateLimit({ max: 150, now });
+  // per e-mail and address together: with one limit per e-mail, a stranger could use it up and lock the owner out
+  const codesPerEmailAndIp = rateLimit({ max: SENDS_PER_HOUR_PER_IP, now });
   const originsPerIp = rateLimit({ max: 30, now });
   const housekeeping = setInterval(() => {
     accounts.cleanUp();
     codesPerIp.cleanUp();
+    codesPerEmailAndIp.cleanUp();
     originsPerIp.cleanUp();
   }, 60 * 60 * 1000);
   housekeeping.unref();
@@ -168,8 +171,11 @@ export function createServer({
       'POST',
       '/api/sign-in/code',
       async (req) => {
-        if (!codesPerIp.allow(rateKey(clientIp(req)))) throw new HttpError(429, 'Too many requests from here. Try again in an hour.', 'too_many_requests');
+        const ip = rateKey(clientIp(req));
+        if (!codesPerIp.allow(ip)) throw new HttpError(429, 'Too many requests from here. Try again in an hour.', 'too_many_requests');
         const { email } = await readJson(req);
+        const pair = `${ip} ${normalizeEmail(email)}`;
+        if (!codesPerEmailAndIp.hasRoom(pair)) throw new HttpError(429, 'Too many codes for this e-mail. Try again in an hour.', 'too_many_sends');
         const r = accounts.requestCode(email);
         const sent = await mailer.sendCode(r.email, r.code);
         if (!sent.ok) {
@@ -177,6 +183,7 @@ export function createServer({
           if (sent.reason === 'queue') throw new HttpError(503, 'Too many people signing in right now. Try again in a minute.', 'mail_queue');
           throw new HttpError(503, 'We could not send the e-mail right now. Try again in a few minutes.', 'mail_failed');
         }
+        codesPerEmailAndIp.allow(pair); // only codes that went out count: a double click or a mail failure does not
         return { ok: true, email: r.email };
       },
     ],

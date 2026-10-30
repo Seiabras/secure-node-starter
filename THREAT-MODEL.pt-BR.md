@@ -75,7 +75,7 @@ flowchart LR
 
 | ID | Ameaça | Mitigação | Situação |
 |---|---|---|---|
-| S1 | Adivinhar o código de entrada de alguém | 6 dígitos (10⁶), 5 tentativas por código, 5 códigos por e-mail por hora, 150 pedidos de código por IP por hora (`server/accounts.mjs`, `server/server.mjs`). No máximo 25 palpites por hora por endereço: cerca de 40.000 horas para 50% de chance. | Mitigada, testada |
+| S1 | Adivinhar o código de entrada de alguém | 6 dígitos (10⁶), 5 tentativas por código, 5 códigos por hora por e-mail e IP, 12 por e-mail no total, 150 pedidos de código por IP por hora (`server/accounts.mjs`, `server/server.mjs`). No máximo 25 palpites por hora por endereço: cerca de 40.000 horas para 50% de chance. | Mitigada, testada |
 | S2 | Tomar a caixa de e-mail e, com ela, a conta | A caixa é o único fator. | **Aceita**, ver R-1 |
 | S3 | Roubar a sessão por XSS | Cookie `HttpOnly`; CSP sem scripts ou estilos inline; Trusted Types; o front-end só escreve `textContent` (`server/http.mjs`, `public/js/app.js`). | Mitigada, testada no navegador |
 | S4 | Roubar a sessão na rede | Só HTTPS, HSTS, cookie `Secure` com prefixo `__Host-`. | Mitigada |
@@ -127,6 +127,7 @@ flowchart LR
 | D3 | Encher a tabela `origins` | No máximo 200 nomes diferentes, 30 contagens por IP por hora. | Mitigada, testada |
 | D4 | Conexões lentas, enxurradas | Caddy na frente, tempos limite padrão do Node. Sem limite geral no proxy. | Parcial, ver R-5 |
 | D5 | Uma versão ruim derrubar o site | Conferência de saúde depois de cada deploy, volta automática; `Restart=always`. | Mitigada, conferida num servidor de teste |
+| D6 | Travar alguém fora gastando o limite de códigos do e-mail da pessoa | Os códigos contam por e-mail e IP (5 por hora), então um endereço não alcança o total (12 por hora). As sessões já abertas continuam valendo. | Mitigado, testado; ver R-6 |
 
 ### Elevação de privilégio (Elevation of privilege)
 
@@ -154,6 +155,7 @@ flowchart LR
 | R-3 | Sem registro de auditoria das ações de administração | O único endpoint de administração só lê | Uma tabela de auditoria só de acréscimo, assim que uma ação de administração mudar dados |
 | R-4 | Quem tem a chave de deploy roda código como o usuário do site | É assim que o deploy funciona; a chave vive só num segredo de ambiente do GitHub, e a caixa de areia contém o resultado | Versões assinadas e conferidas no servidor; revisão obrigatória no ambiente `production` |
 | R-5 | Sem limite geral de pedidos na frente da aplicação | Limites por endpoint cobrem os caminhos caros | Um limite no Caddy ou no provedor de nuvem |
+| R-6 | Quem tem vários endereços de IP ainda consegue gastar os 12 códigos de um e-mail por uma hora, e um código novo substitui o que acabou de chegar | Um total maior daria mais tentativas e mais e-mail indesejado; uma sessão aberta não é afetada | Um segundo fator, ou links de entrada que não se substituam |
 
 ## 7. Como foi conferido
 

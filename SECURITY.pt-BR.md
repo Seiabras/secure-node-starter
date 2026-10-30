@@ -25,7 +25,7 @@ levar esta tabela para ele está nos [próximos passos](README.pt-BR.md#próximo
 | # | Requisito (resumido) | Situação | Onde |
 |---|---|---|---|
 | **V2** | **Autenticação** | | |
-| 2.2.1 | Proteção contra força bruta | Sim | 5 tentativas por código, 5 códigos por e-mail por hora, limite por IP com IPv6 por /64 (`server/accounts.mjs`, `server/http.mjs`) |
+| 2.2.1 | Proteção contra força bruta | Sim | 5 tentativas por código, 5 códigos por hora por e-mail e IP, 12 por e-mail no total, limite por IP com IPv6 por /64 (`server/accounts.mjs`, `server/http.mjs`) |
 | 2.2.2 | Autenticadores fracos (SMS, e-mail) só como segundo fator | **Não** | O e-mail é o único fator, por projeto. Risco aceito R-1 no modelo de ameaças; passkeys nos próximos passos |
 | 2.3.1 | Códigos gerados são aleatórios, têm ao menos 6 caracteres e expiram logo | Sim | `crypto.randomInt`, 6 dígitos, 10 minutos |
 | 2.7.1 | Sem códigos em texto claro por SMS ou telefone por padrão | Sim | Não oferecido |

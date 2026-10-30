@@ -75,7 +75,7 @@ flowchart LR
 
 | ID | Threat | Mitigation | Status |
 |---|---|---|---|
-| S1 | Guessing someone's sign-in code | 6 digits (10⁶), 5 attempts per code, 5 codes per e-mail per hour, 150 code requests per IP per hour (`server/accounts.mjs`, `server/server.mjs`). At most 25 guesses per hour per address: ~40,000 hours for a 50% chance. | Mitigated, tested |
+| S1 | Guessing someone's sign-in code | 6 digits (10⁶), 5 attempts per code, 5 codes an hour per e-mail and IP, 12 per e-mail in total, 150 code requests per IP per hour (`server/accounts.mjs`, `server/server.mjs`). At most 25 guesses per hour per address: ~40,000 hours for a 50% chance. | Mitigated, tested |
 | S2 | Taking over the mailbox, and so the account | The mailbox is the only factor. | **Accepted**, see R-1 |
 | S3 | Stealing the session through XSS | `HttpOnly` cookie; CSP without inline scripts or styles; Trusted Types; the front end only writes `textContent` (`server/http.mjs`, `public/js/app.js`). | Mitigated, tested in a browser |
 | S4 | Stealing the session on the network | HTTPS only, HSTS, cookie `Secure` with the `__Host-` prefix. | Mitigated |
@@ -127,6 +127,7 @@ flowchart LR
 | D3 | Filling the `origins` table | At most 200 different names, 30 counts per IP per hour. | Mitigated, tested |
 | D4 | Slow connections, floods | Caddy in front, Node's default request timeouts. No global rate limit at the proxy. | Partial, see R-5 |
 | D5 | A bad release takes the site down | Health check after every deploy, automatic rollback; `Restart=always`. | Mitigated, verified on a test server |
+| D6 | Locking someone out by using up the code limit of their e-mail | Codes count per e-mail and IP (5 an hour), so one address cannot reach the total (12 an hour). Sessions already open keep working. | Mitigated, tested; see R-6 |
 
 ### Elevation of privilege
 
@@ -154,6 +155,7 @@ flowchart LR
 | R-3 | No audit log of admin actions | The only admin endpoint is read-only | An append-only audit table as soon as an admin action changes data |
 | R-4 | Whoever holds the deploy key runs code as the site user | It is how deployment works; the key lives only in a GitHub environment secret, and the sandbox contains the result | Signed releases verified on the server; required reviewers on the `production` environment |
 | R-5 | No global rate limit in front of the app | Per-endpoint limits cover the expensive paths | A rate limit in Caddy or at the cloud provider |
+| R-6 | Someone with several IP addresses can still use up the 12 codes of one e-mail for an hour, and a new code replaces the one that just arrived | A higher total would mean more guesses and more unwanted e-mail; an open session is not affected | A second factor, or sign-in links that do not replace each other |
 
 ## 7. How it was checked
 

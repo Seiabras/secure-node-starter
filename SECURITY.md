@@ -25,7 +25,7 @@ this table to it is on the [roadmap](README.md#roadmap).
 | # | Requirement (short) | Status | Where |
 |---|---|---|---|
 | **V2** | **Authentication** | | |
-| 2.2.1 | Anti-automation against brute force | Yes | 5 attempts per code, 5 codes per e-mail per hour, per-IP limit with IPv6 by /64 (`server/accounts.mjs`, `server/http.mjs`) |
+| 2.2.1 | Anti-automation against brute force | Yes | 5 attempts per code, 5 codes an hour per e-mail and IP, 12 per e-mail in total, per-IP limit with IPv6 by /64 (`server/accounts.mjs`, `server/http.mjs`) |
 | 2.2.2 | Weak authenticators (SMS, e-mail) only as a secondary factor | **No** | E-mail is the only factor, by design. Accepted risk R-1 in the threat model; passkeys on the roadmap |
 | 2.3.1 | Generated codes are random, at least 6 characters, and expire soon | Yes | `crypto.randomInt`, 6 digits, 10 minutes |
 | 2.7.1 | No clear-text SMS or phone codes by default | Yes | Not offered |

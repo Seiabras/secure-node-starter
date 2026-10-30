@@ -8,7 +8,8 @@ import { HttpError } from './errors.mjs';
 export const CODE_TTL_MS = 10 * 60 * 1000; // ASVS 2.7.2: an out-of-band code expires within 10 minutes
 export const CODE_ATTEMPTS = 5;
 export const RESEND_MS = 60 * 1000;
-export const SENDS_PER_HOUR = 5;
+export const SENDS_PER_HOUR = 12; // to one e-mail, from anywhere: with 5 attempts each, 60 guesses an hour (ASVS 2.2.1: 100)
+export const SENDS_PER_HOUR_PER_IP = 5; // to one e-mail, from one address: one stranger cannot use up the total
 export const SESSION_IDLE_DAYS = 14; // unused for 14 days: signed out
 export const SESSION_MAX_DAYS = 30; // and never longer than 30 days, even when used every day (ASVS 3.3.2)
 export const RECENT_SIGN_IN_MS = 15 * 60 * 1000; // deleting the account needs a sign-in this recent (ASVS 3.7.1)
@@ -181,6 +182,11 @@ export function rateLimit({ max = 20, windowMs = 60 * 60 * 1000, now = () => Dat
       list.push(t);
       hits.set(ip, list);
       return true;
+    },
+    /** Whether `allow` would say yes now, without counting anything. */
+    hasRoom(ip) {
+      const t = now();
+      return (hits.get(ip) ?? []).filter((x) => t - x < windowMs).length < max;
     },
     cleanUp() {
       const t = now();
