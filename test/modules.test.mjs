@@ -9,7 +9,27 @@ import { originName, createOrigins } from '../server/origins.mjs';
 import { createDeviceApproval } from '../server/devices.mjs';
 import { clientIp, assertSameOrigin, rateKey } from '../server/http.mjs';
 import { openDb } from '../server/db.mjs';
+import { createServer } from '../server/server.mjs';
 import { startServer } from './helpers.mjs';
+
+test('the development secret is created once, private, and never through a symlink', () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'starter-'));
+  const file = path.join(dataDir, 'secret');
+  createServer({ dataDir });
+  const first = fs.readFileSync(file, 'utf8');
+  assert.match(first, /^[0-9a-f]{64}$/);
+  assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+  createServer({ dataDir });
+  assert.equal(fs.readFileSync(file, 'utf8'), first);
+
+  const planted = fs.mkdtempSync(path.join(os.tmpdir(), 'starter-'));
+  const target = path.join(planted, 'target');
+  fs.symlinkSync(target, path.join(planted, 'secret'));
+  assert.throws(() => createServer({ dataDir: planted }), { code: 'ENOENT' });
+  assert.equal(fs.existsSync(target), false);
+
+  for (const dir of [dataDir, planted]) fs.rmSync(dir, { recursive: true, force: true });
+});
 
 test('mail pacing spaces the sends and refuses when the queue is full', async () => {
   let clock = 0;

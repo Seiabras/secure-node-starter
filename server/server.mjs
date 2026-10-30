@@ -111,7 +111,12 @@ function loadSecret(dataDir) {
   if (process.env.SECRET) return process.env.SECRET;
   if (PRODUCTION) throw new Error('SECRET is not set: refusing to start in production without it (see .env.example)');
   const file = path.join(dataDir, 'secret');
-  if (!fs.existsSync(file)) fs.writeFileSync(file, crypto.randomBytes(32).toString('hex'), { mode: 0o600 });
+  // wx creates it or fails: no gap between looking and writing, and a planted symlink is never followed.
+  try {
+    fs.writeFileSync(file, crypto.randomBytes(32).toString('hex'), { mode: 0o600, flag: 'wx' });
+  } catch (err) {
+    if (err.code !== 'EEXIST') throw err;
+  }
   return fs.readFileSync(file, 'utf8').trim();
 }
 

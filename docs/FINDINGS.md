@@ -49,3 +49,4 @@ systemd, OpenSSH, Caddy). These are what came out of it, all fixed before the fi
 | ID | Found by | Severity | Problem | Fix | Test |
 |---|---|---|---|---|---|
 | F-19 | First CI run on GitHub | Bug | The documented ZAP exceptions never reached the scanner: the action hands `rules_file_name` to ZAP only when the file has an `IGNORE` line, and these are all `INFO`. ZAP counted them as warnings and failed the job, along with its cache report (10049) | The rules go in `cmd_options`; 10049 is documented in `.zap/rules.tsv` | CI, ZAP job |
+| F-20 | CodeQL (`js/file-system-race`) | Low | Development only (production refuses to start without `SECRET`): the fallback secret was written after checking that the file did not exist, so a symlink planted at that path was followed and the secret went to its target | Created with `flag: 'wx'`: atomic, and a symlink is never followed | `modules.test.mjs` |
