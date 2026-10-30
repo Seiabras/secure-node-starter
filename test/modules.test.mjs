@@ -18,9 +18,9 @@ test('the development secret is created once, private, and never through a symli
   createServer({ dataDir });
   const first = fs.readFileSync(file, 'utf8');
   assert.match(first, /^[0-9a-f]{64}$/);
-  assert.equal(fs.statSync(file).mode & 0o777, 0o600);
   createServer({ dataDir });
   assert.equal(fs.readFileSync(file, 'utf8'), first);
+  assert.equal(fs.statSync(file).mode & 0o777, 0o600);
 
   const planted = fs.mkdtempSync(path.join(os.tmpdir(), 'starter-'));
   const target = path.join(planted, 'target');
