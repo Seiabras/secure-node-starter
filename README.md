@@ -62,9 +62,11 @@ server/
   devices.mjs       device approval for a key-protected panel (optional, not wired)
   db.mjs            the SQLite schema
 public/             pages, CSS and JS (no inline code: the CSP forbids it); public/pt-BR/ has the pages in Portuguese
-test/               node:test, against a real server on a random port
+test/               node:test, against a real server on a random port: site, accounts, modules and pt-br
+                    (47 tests); helpers.mjs starts the server
 scripts/            check-headers.mjs: run it against localhost or a live site
-deploy/             install-once.sh, receive.sh, site.service, offsite-backup/
+deploy/             install-once.sh, receive.sh, site.service, site.conf.example, offsite-backup/ (restic to a
+                    second server: prepare-source.sh, prepare-target.sh, the site-backup service and timer)
 .github/workflows/  ci.yml (tests, scans, deploy), codeql.yml, backup.yml
 .zap/rules.tsv      the three ZAP alerts treated as informational, and why
 ```

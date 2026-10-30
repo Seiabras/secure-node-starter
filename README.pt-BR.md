@@ -62,9 +62,11 @@ server/
   devices.mjs       aprovação de aparelho para painel com chave (opcional, não ligado)
   db.mjs            o esquema do SQLite
 public/             páginas, CSS e JS (nada inline: a CSP proíbe); public/pt-BR/ tem as páginas em português
-test/               node:test, contra um servidor de verdade numa porta aleatória
+test/               node:test, contra um servidor de verdade numa porta aleatória: site, accounts, modules e
+                    pt-br (47 testes); helpers.mjs sobe o servidor
 scripts/            check-headers.mjs: rode contra o localhost ou um site no ar
-deploy/             install-once.sh, receive.sh, site.service, offsite-backup/
+deploy/             install-once.sh, receive.sh, site.service, site.conf.example, offsite-backup/ (restic
+                    para um segundo servidor: prepare-source.sh, prepare-target.sh, o serviço e o timer site-backup)
 .github/workflows/  ci.yml (testes, varreduras, deploy), codeql.yml, backup.yml
 .zap/rules.tsv      os três alertas do ZAP tratados como informativos, e por quê
 ```
