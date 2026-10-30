@@ -2,7 +2,8 @@
 
 [Leia em português](FINDINGS.pt-BR.md)
 
-Every security problem found in this code, by whom or by what, how bad it was and how it was fixed. New findings
+Every security problem found in this code, by whom or by what, how bad it was and how it was fixed. The pentest of a
+deployed copy is written up in [`PENTEST.md`](PENTEST.md). New findings
 (a review, ZAP, CodeQL, a pentest, a report from you) get a row here and their own commit.
 
 Severity is judged for a small site with accounts, as deployed by this project: **High** = account takeover or code

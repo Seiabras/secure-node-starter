@@ -30,10 +30,11 @@ funções, mas cada uma tem uma ameaça por trás, um controle no código e um t
 
 ## Em números (v0.1.0)
 
-- **0** dependências, **45** testes
+- **0** dependências, **47** testes
 - OWASP ZAP: **60** regras passivas e **113** ativas passando, **0** avisos
 - `systemd-analyze security`: **8.3 → 1.2**
 - **18** achados corrigidos antes da primeira versão: [`docs/FINDINGS.pt-BR.md`](docs/FINDINGS.pt-BR.md)
+- **Pentest** de uma cópia publicada, com o ZAP completo e sessão: 0 altos ou médios: [`docs/PENTEST.pt-BR.md`](docs/PENTEST.pt-BR.md)
 
 ## Para começar
 
@@ -108,7 +109,6 @@ fator duas vezes.
 
 ## Próximos passos
 
-- Um pentest de uma cópia publicada, com relatório (os achados vão para `docs/FINDINGS.pt-BR.md`)
 - Passkeys (WebAuthn), começando pela administração: fecha o ASVS 2.2.2 e 4.3.1 para ela
 - Um registro de auditoria, só de acréscimo, para as ações da administração
 - A tabela do ASVS passada para o ASVS 5.0

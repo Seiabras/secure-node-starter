@@ -30,10 +30,11 @@ each has a threat behind it, a control in the code and a test that tries to brea
 
 ## In numbers (v0.1.0)
 
-- **0** dependencies, **45** tests
+- **0** dependencies, **47** tests
 - OWASP ZAP: **60** passive and **113** active rules pass, **0** warnings
 - `systemd-analyze security`: **8.3 → 1.2**
 - **18** findings fixed before the first release: [`docs/FINDINGS.md`](docs/FINDINGS.md)
+- **Pentest** of a deployed copy, with a signed-in ZAP full scan: 0 High or Medium: [`docs/PENTEST.md`](docs/PENTEST.md)
 
 ## Quick start
 
@@ -107,7 +108,6 @@ same factor twice.
 
 ## Roadmap
 
-- A pentest of a deployed copy, with a written report (findings go to `docs/FINDINGS.md`)
 - Passkeys (WebAuthn), admins first: closes ASVS 2.2.2 and 4.3.1 for them
 - An append-only audit log for admin actions
 - The ASVS table moved to ASVS 5.0

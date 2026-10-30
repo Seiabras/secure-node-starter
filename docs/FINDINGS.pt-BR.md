@@ -2,7 +2,8 @@
 
 [Read in English](FINDINGS.md)
 
-Todo problema de segurança achado neste código: quem ou o que achou, a gravidade e como foi corrigido. Achados novos
+Todo problema de segurança achado neste código: quem ou o que achou, a gravidade e como foi corrigido. O pentest de uma
+cópia publicada está em [`PENTEST.pt-BR.md`](PENTEST.pt-BR.md). Achados novos
 (uma revisão, o ZAP, o CodeQL, um pentest, um relato seu) ganham uma linha aqui e um commit próprio.
 
 A gravidade vale para um site pequeno com contas, publicado do jeito deste projeto: **Alta** = tomada de conta ou

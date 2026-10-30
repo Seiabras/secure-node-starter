@@ -162,6 +162,8 @@ flowchart LR
 - **Tests** (`npm test`): every row marked "tested" above has at least one test that attacks it.
 - **OWASP ZAP**: the baseline scan runs in CI on every push; a full active scan was run before the first release.
   Results and what was fixed are in [`docs/FINDINGS.md`](docs/FINDINGS.md).
+- **Pentest**: a deployed copy was attacked by hand and with a signed-in ZAP full scan on 2026-10-30, see
+  [`docs/PENTEST.md`](docs/PENTEST.md).
 - **A test server**: `install-once.sh`, a deploy, a broken deploy (rollback), a hostile package, the backup command
   and the forced-command limits were run on Ubuntu 24.04 with systemd, SSH and Caddy.
 - **CodeQL** (JavaScript and the workflows), **gitleaks** (whole history), **shellcheck**, and

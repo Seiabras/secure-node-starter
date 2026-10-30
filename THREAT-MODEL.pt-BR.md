@@ -162,6 +162,8 @@ flowchart LR
 - **Testes** (`npm test`): toda linha marcada como "testada" acima tem ao menos um teste que a ataca.
 - **OWASP ZAP**: a varredura baseline roda no CI a cada push; uma varredura ativa completa foi feita antes da primeira
   versão. Os resultados e o que foi corrigido estão em [`docs/FINDINGS.pt-BR.md`](docs/FINDINGS.pt-BR.md).
+- **Pentest**: uma cópia publicada foi atacada à mão e com o ZAP completo, com sessão, em 30/10/2026; ver
+  [`docs/PENTEST.pt-BR.md`](docs/PENTEST.pt-BR.md).
 - **Um servidor de teste**: `install-once.sh`, um deploy, um deploy quebrado (volta), um pacote hostil, o comando de
   cópia e os limites do comando forçado rodaram em Ubuntu 24.04 com systemd, SSH e Caddy.
 - **CodeQL** (JavaScript e os workflows), **gitleaks** (histórico inteiro), **shellcheck** e
