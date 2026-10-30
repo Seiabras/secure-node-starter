@@ -280,6 +280,7 @@ export function createServer({
       if (!known) console.error(`[error ${reference}]`, e);
       if (res.headersSent) return res.end();
       const extra = e.allow ? { Allow: e.allow } : {};
+      if (status === 413) extra.Connection = 'close'; // the rest of that body is not worth receiving
       if (wantsPage(req, pathname) && (status === 404 || status >= 500)) {
         const { html, csp } = errorPage({ status, siteName: SITE_NAME, contact: CONTACT, color: COLOR, reference, lang });
         res.writeHead(status, {

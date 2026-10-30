@@ -35,22 +35,25 @@ export function sendJson(res, status, body, extra = {}) {
   res.end(JSON.stringify(body));
 }
 
-/** The request body, up to `max` bytes; more than that is a 413 and the connection is dropped. */
+/** The request body, up to `max` bytes; past that it stops storing, and the 413 closes the connection. */
 export function readBody(req, max = BODY_LIMIT) {
   const declared = Number(req.headers['content-length']);
   if (declared > max) return Promise.reject(new HttpError(413, 'Too large.'));
   return new Promise((resolve, reject) => {
     const parts = [];
     let size = 0;
-    req.on('data', (chunk) => {
+    const onData = (chunk) => {
       size += chunk.length;
       if (size > max) {
+        // no req.destroy() here: it killed the connection before the 413 went out, and the proxy answered 502
+        req.off('data', onData);
+        req.resume();
         reject(new HttpError(413, 'Too large.'));
-        req.destroy();
         return;
       }
       parts.push(chunk);
-    });
+    };
+    req.on('data', onData);
     req.on('end', () => resolve(Buffer.concat(parts)));
     req.on('error', reject);
   });

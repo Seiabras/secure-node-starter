@@ -1,6 +1,7 @@
 // Accounts, end to end through the API: codes, sessions, cookies, CSRF, limits, export and deletion.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import http from 'node:http';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { startServer, MINUTE, DAY } from './helpers.mjs';
@@ -182,6 +183,26 @@ test('bodies are limited to 64 KB and must be a JSON object', async () => {
     assert.equal(bad.status, 400);
     const array = await fetch(s.base + '/api/sign-in/code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '[]' });
     assert.equal(array.status, 400);
+  } finally {
+    await s.close();
+  }
+});
+
+test('a chunked body over the limit gets the 413 and the connection closes (behind a proxy this was a 502)', async () => {
+  const s = await startServer();
+  try {
+    const { hostname, port } = new URL(s.base);
+    const answer = await new Promise((resolve, reject) => {
+      const headers = { 'Content-Type': 'application/json', 'Transfer-Encoding': 'chunked' };
+      const req = http.request({ hostname, port, path: '/api/sign-in/code', method: 'POST', headers }, (res) => {
+        res.resume();
+        res.on('end', () => resolve(`${res.statusCode} ${res.headers.connection}`));
+      });
+      req.on('error', reject);
+      for (let i = 0; i < 7; i++) req.write('x'.repeat(10_000));
+      req.end();
+    });
+    assert.equal(answer, '413 close');
   } finally {
     await s.close();
   }
