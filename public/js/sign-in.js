@@ -1,7 +1,7 @@
 // Sign in: step 1 asks for the e-mail and sends the code; step 2 checks the code and goes back where the person was.
 (() => {
   'use strict';
-  const { api, safeNext, say, savedOrigin, forgetOrigin } = window.App;
+  const { api, safeNext, say, t, savedOrigin, forgetOrigin } = window.App;
   const emailForm = document.getElementById('email-form');
   const codeForm = document.getElementById('code-form');
   const emailInput = document.getElementById('email');
@@ -10,7 +10,7 @@
   const message = document.getElementById('message');
   const next = safeNext(new URLSearchParams(location.search).get('next'));
 
-  if (new URLSearchParams(location.search).get('reauth')) say(message, 'For your safety, sign in again to continue.');
+  if (new URLSearchParams(location.search).get('reauth')) say(message, t('For your safety, sign in again to continue.'));
 
   async function busy(form, fn) {
     const button = form.querySelector('button[type="submit"]');
@@ -31,7 +31,7 @@
       sentTo.textContent = r.email;
       emailForm.hidden = true;
       codeForm.hidden = false;
-      say(message, 'Code sent. It may take a minute; check the spam folder too.', 'ok');
+      say(message, t('Code sent. It may take a minute; check the spam folder too.'), 'ok');
       codeInput.focus();
     });
   });

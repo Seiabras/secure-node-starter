@@ -114,13 +114,13 @@ test('a symlink in public/ that points outside it is not followed', async (t) =>
   assert.equal((await fetch(s.base + '/robots.txt')).status, 200, 'normal files still work');
 });
 
-test('every page: viewport, theme, English, privacy link and no inline script, style or handler (CSP)', () => {
+test('every page: viewport, theme, language, privacy link and no inline script, style or handler (CSP)', () => {
   for (const f of pages(path.join(ROOT, 'public'))) {
     const html = fs.readFileSync(f, 'utf8');
     const name = path.relative(ROOT, f);
     assert.match(html, /<meta name="viewport"/, name);
     assert.match(html, /<script src="\/js\/theme\.js"><\/script>/, name);
-    assert.match(html, /<html lang="en">/, name);
+    assert.match(html, name.includes('pt-BR') ? /<html lang="pt-BR">/ : /<html lang="en">/, name);
     assert.match(html, /href="\/privacy"/, name);
     assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)[^>]*>/, `${name}: inline <script>`);
     assert.doesNotMatch(html, /\sstyle="/, `${name}: style=""`);

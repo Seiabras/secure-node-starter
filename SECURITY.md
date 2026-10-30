@@ -1,5 +1,7 @@
 # Security
 
+[Leia em português](SECURITY.pt-BR.md)
+
 ## Reporting a vulnerability
 
 Please report it privately, through **Security → Report a vulnerability** on this repository (GitHub private

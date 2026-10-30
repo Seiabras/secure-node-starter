@@ -15,7 +15,8 @@
     const now = chosen === 'light' || chosen === 'dark' ? chosen : deviceDark() ? 'dark' : 'light';
     root.dataset.themeNow = now;
     document.querySelectorAll('.theme-toggle').forEach((b) => {
-      b.setAttribute('aria-label', now === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+      const pt = root.lang === 'pt-BR';
+      b.setAttribute('aria-label', now === 'dark' ? (pt ? 'Mudar para o modo claro' : 'Switch to light mode') : pt ? 'Mudar para o modo escuro' : 'Switch to dark mode');
       b.title = b.getAttribute('aria-label');
     });
   };

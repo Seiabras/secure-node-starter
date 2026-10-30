@@ -4,6 +4,19 @@
 (() => {
   'use strict';
 
+  // The page says its language; the messages made here follow it. English is the key.
+  const PT = {
+    'No connection. Check the internet and try again.': 'Sem conexão. Confira a internet e tente de novo.',
+    'Something went wrong. Try again.': 'Algo deu errado. Tente de novo.',
+    'For your safety, sign in again to continue.': 'Para sua segurança, entre de novo para continuar.',
+    'Code sent. It may take a minute; check the spam folder too.': 'Código enviado. Pode levar um minuto; olhe também o spam.',
+    'Delete the account and everything in it? This cannot be undone.': 'Apagar a conta e tudo o que há nela? Isso não pode ser desfeito.',
+    'my-data.json': 'meus-dados.json',
+    'No visits from ?origin= links in the last 30 days.': 'Nenhuma visita por links ?origin= nos últimos 30 dias.',
+    'Use letters, numbers, - or _ (up to 32).': 'Use letras, números, - ou _ (até 32).',
+  };
+  const t = (text) => (document.documentElement.lang === 'pt-BR' && PT[text]) || text;
+
   /** Builds an element: el('a', { href: '/', class: 'button' }, 'text', otherElement). Text is always text. */
   function el(tag, attrs = {}, ...children) {
     const e = document.createElement(tag);
@@ -28,7 +41,7 @@
     try {
       r = await fetch(url, options);
     } catch {
-      throw new Error('No connection. Check the internet and try again.');
+      throw new Error(t('No connection. Check the internet and try again.'));
     }
     let data = {};
     try {
@@ -38,7 +51,7 @@
     }
     if (!r.ok) {
       const ref = data.reference ? ` (${data.code} · ref. ${data.reference})` : '';
-      throw Object.assign(new Error((data.error || 'Something went wrong. Try again.') + ref), { status: r.status, reason: data.reason });
+      throw Object.assign(new Error((data.error || t('Something went wrong. Try again.')) + ref), { status: r.status, reason: data.reason });
     }
     return data;
   }
@@ -89,5 +102,5 @@
     }
   }
 
-  window.App = { el, api, safeNext, say, savedOrigin, forgetOrigin };
+  window.App = { el, api, safeNext, say, t, savedOrigin, forgetOrigin };
 })();

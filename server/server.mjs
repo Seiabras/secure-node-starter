@@ -2,8 +2,8 @@
 // It serves public/, answers /api/health and comes with e-mail-code accounts, the ?origin= counter and an admin
 // endpoint. Every control is listed, with the file and line that implements it, in SECURITY.md.
 //
-// Settings (.env, see .env.example): HOST, PORT, TRUST_PROXY, DATA_DIR, SITE_URL, SITE_NAME, CONTACT_EMAIL, SECRET,
-// ADMIN_EMAILS, RESEND_API_KEY, MAIL_FROM, NODE_ENV and, on a development machine only, DEV_PRINT_CODE.
+// Settings (.env, see .env.example): HOST, PORT, TRUST_PROXY, DATA_DIR, SITE_URL, SITE_NAME, SITE_LANG, CONTACT_EMAIL,
+// SECRET, ADMIN_EMAILS, RESEND_API_KEY, MAIL_FROM, NODE_ENV and, on a development machine only, DEV_PRINT_CODE.
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,10 +15,12 @@ import { openDb } from './db.mjs';
 import { createAccounts, rateLimit, SESSION_IDLE_DAYS } from './accounts.mjs';
 import { createMailer } from './mail.mjs';
 import { createOrigins } from './origins.mjs';
+import { siteLang, translate } from './i18n.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUBLIC = path.join(ROOT, 'public');
 const PUBLIC_REAL = fs.realpathSync(PUBLIC);
+const PAGES_PT = path.join(PUBLIC, 'pt-BR'); // the pages in Portuguese; CSS, JS and images are shared
 const SITE_NAME = process.env.SITE_NAME || 'Secure Node Starter';
 const CONTACT = process.env.CONTACT_EMAIL || '';
 const COLOR = '#2563EB';
@@ -55,7 +57,7 @@ function htmlWithUrl(file, mtime) {
   return text;
 }
 
-function serveFile(req, res, urlPath, head) {
+function serveFile(req, res, urlPath, head, lang) {
   let rel;
   try {
     rel = decodeURIComponent(urlPath);
@@ -65,8 +67,10 @@ function serveFile(req, res, urlPath, head) {
   if (rel.includes('\0')) throw new HttpError(400, 'Malformed address.');
   if (rel.endsWith('/')) rel += 'index.html';
   else if (!path.extname(rel)) rel += '.html'; // /privacy → privacy.html
-  const file = path.normalize(path.join(PUBLIC, rel));
-  if (!file.startsWith(PUBLIC + path.sep)) throw new HttpError(404, 'Not found.'); // no way out of public/
+  const root = lang === 'pt-BR' && path.extname(rel) === '.html' ? PAGES_PT : PUBLIC;
+  const file = path.normalize(path.join(root, rel));
+  if (!file.startsWith(root + path.sep)) throw new HttpError(404, 'Not found.'); // no way out of public/
+  if (root === PUBLIC && file.startsWith(PAGES_PT + path.sep)) throw new HttpError(404, 'Not found.'); // one site, one language
   const ext = path.extname(file).toLowerCase();
   if (!Object.hasOwn(MIME, ext) || path.basename(file).startsWith('.')) throw new HttpError(404, 'Not found.');
   let st;
@@ -123,7 +127,8 @@ function loadSecret(dataDir) {
 export function createServer({
   dataDir = process.env.DATA_DIR || path.join(ROOT, 'local-data'),
   secret,
-  mailer = createMailer(),
+  lang = siteLang(),
+  mailer = createMailer({ lang }),
   admins = String(process.env.ADMIN_EMAILS || '')
     .split(',')
     .map((e) => e.trim().toLowerCase())
@@ -266,7 +271,7 @@ export function createServer({
         return res.headersSent ? undefined : sendJson(res, 200, result);
       }
       if (req.method !== 'GET' && req.method !== 'HEAD') throw Object.assign(new HttpError(405, 'Method not allowed.'), { allow: 'GET, HEAD' });
-      return serveFile(req, res, pathname, req.method === 'HEAD');
+      return serveFile(req, res, pathname, req.method === 'HEAD', lang);
     } catch (e) {
       const known = e instanceof HttpError;
       const status = known ? e.status : 500;
@@ -276,7 +281,7 @@ export function createServer({
       if (res.headersSent) return res.end();
       const extra = e.allow ? { Allow: e.allow } : {};
       if (wantsPage(req, pathname) && (status === 404 || status >= 500)) {
-        const { html, csp } = errorPage({ status, siteName: SITE_NAME, contact: CONTACT, color: COLOR, reference });
+        const { html, csp } = errorPage({ status, siteName: SITE_NAME, contact: CONTACT, color: COLOR, reference, lang });
         res.writeHead(status, {
           'Content-Type': MIME['.html'],
           'Cache-Control': 'no-store',
@@ -286,7 +291,7 @@ export function createServer({
         });
         return res.end(req.method === 'HEAD' ? undefined : html);
       }
-      const message = known ? e.message : 'Server error. Try again in a moment.';
+      const message = translate(known ? e.message : 'Server error. Try again in a moment.', lang);
       sendJson(res, status, errorBody(status, message, reference, known ? e.reason : ''), extra);
     }
   });

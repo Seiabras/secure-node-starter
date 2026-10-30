@@ -22,5 +22,6 @@ e-mails or keys; examples use `example.com`, `203.0.113.x` and `mysite`.
   `THREAT-MODEL.md`. A change to a control updates both, and gets a test that tries to break it.
 - A problem found (by a review, ZAP, CodeQL or a pentest) gets an entry in `docs/FINDINGS.md` and its own commit.
 - No dependencies. Something that would need a package is either written here, small and tested, or left out.
-- `npm test`, `npm run check:headers` and `npm run check:html` before every commit. The README and README.pt-BR say
-  the same thing: change one, change the other.
+- `npm test`, `npm run check:headers` and `npm run check:html` before every commit. README, SECURITY, THREAT-MODEL and
+  docs/FINDINGS exist in English and in pt-BR, and each pair says the same thing: change one, change the other. The
+  same for the pages in `public/` and `public/pt-BR/`, and for the messages in `server/i18n.mjs`.

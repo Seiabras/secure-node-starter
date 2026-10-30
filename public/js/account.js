@@ -1,7 +1,7 @@
 // The account page: who is signed in, download my data, sign out (here or everywhere) and delete the account.
 (() => {
   'use strict';
-  const { api, say } = window.App;
+  const { api, say, t } = window.App;
   const message = document.getElementById('message');
   const toSignIn = (extra = '') => {
     location.href = '/sign-in?next=/account' + extra;
@@ -11,7 +11,7 @@
     try {
       const me = await api('/api/me');
       document.getElementById('me-email').textContent = me.email;
-      document.getElementById('me-since').textContent = new Date(me.createdAt).toLocaleDateString();
+      document.getElementById('me-since').textContent = new Date(me.createdAt).toLocaleDateString(document.documentElement.lang);
       document.getElementById('admin-link').hidden = !me.admin;
       document.getElementById('account').hidden = false;
     } catch (e) {
@@ -24,7 +24,7 @@
     try {
       const data = await api('/api/me/export');
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'my-data.json' });
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: t('my-data.json') });
       a.click();
       URL.revokeObjectURL(a.href);
     } catch (e) {
@@ -47,7 +47,7 @@
   });
 
   document.getElementById('delete').addEventListener('click', async () => {
-    if (!window.confirm('Delete the account and everything in it? This cannot be undone.')) return;
+    if (!window.confirm(t('Delete the account and everything in it? This cannot be undone.'))) return;
     try {
       await api('/api/me', { method: 'DELETE', body: { confirm: 'delete' } });
       location.href = '/?deleted=1';

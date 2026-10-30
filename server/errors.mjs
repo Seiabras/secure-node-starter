@@ -2,6 +2,7 @@
 // printed next to the stack trace in the server log (journalctl), so whoever reports a problem can quote the code
 // and the reference: support finds the log line without asking for screenshots or personal data (ASVS 7.4.1).
 import crypto from 'node:crypto';
+import { ERRORS_PT, ERROR_PAGE } from './i18n.mjs';
 
 /** An error that is safe to show: its status and message go to the client as they are. */
 export class HttpError extends Error {
@@ -42,12 +43,13 @@ export const wantsPage = (req, pathname) =>
  * and dark follow the device. Returns the HTML and its own CSP: the style is inline with a nonce, because the
  * site-wide policy only allows CSS from files.
  */
-export function errorPage({ status, siteName, contact = '', color = '#2563EB', reference = '' }) {
-  const e = errorFor(status);
+export function errorPage({ status, siteName, contact = '', color = '#2563EB', reference = '', lang = 'en' }) {
+  const e = lang === 'pt-BR' ? { ...errorFor(status), ...ERRORS_PT[errorFor(status).code] } : errorFor(status);
+  const words = ERROR_PAGE[lang];
   const nonce = crypto.randomBytes(16).toString('base64');
   const code = e.code + (reference ? ' · ref. ' + reference : '');
-  const subject = encodeURIComponent(`Error ${code} on ${siteName}`);
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  const subject = encodeURIComponent(words.subject(code, siteName));
+  const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><title>${escapeHtml(e.title)} · ${escapeHtml(siteName)}</title>
 <style nonce="${nonce}">
 :root{--bg:#F8FAFC;--fg:#0F172A;--muted:#475569;--card:#FFFFFF;--line:#E2E8F0;--accent:${escapeHtml(color)}}
@@ -59,8 +61,8 @@ a.button{display:inline-flex;align-items:center;justify-content:center;min-heigh
 a:focus-visible{outline:3px solid var(--accent);outline-offset:3px}.code{margin-top:18px;font-size:.85rem}a.report{color:var(--muted);display:inline-block;min-height:44px;line-height:44px}
 </style></head><body><main role="alert">
 <p class="num" aria-hidden="true">${escapeHtml(status)}</p><h1>${escapeHtml(e.title)}</h1><p>${escapeHtml(e.text)}</p>
-<a class="button" href="/">Back to the home page</a>
-<p class="code">Code <b>${escapeHtml(code)}</b>${contact ? ` · <a class="report" href="mailto:${escapeHtml(contact)}?subject=${subject}">report by e-mail</a>` : ''}</p>
+<a class="button" href="/">${words.back}</a>
+<p class="code">${words.code} <b>${escapeHtml(code)}</b>${contact ? ` · <a class="report" href="mailto:${escapeHtml(contact)}?subject=${subject}">${words.report}</a>` : ''}</p>
 </main></body></html>`;
   const csp = `default-src 'none'; style-src 'nonce-${nonce}'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`;
   return { html, csp };

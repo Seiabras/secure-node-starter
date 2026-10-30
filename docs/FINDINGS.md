@@ -1,5 +1,7 @@
 # Findings
 
+[Leia em português](FINDINGS.pt-BR.md)
+
 Every security problem found in this code, by whom or by what, how bad it was and how it was fixed. New findings
 (a review, ZAP, CodeQL, a pentest, a report from you) get a row here and their own commit.
 

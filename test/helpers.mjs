@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createServer } from '../server/server.mjs';
 
-export async function startServer({ admins = [] } = {}) {
+export async function startServer({ admins = [], lang = 'en' } = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'starter-'));
   const codes = new Map();
   const mailer = {
@@ -15,7 +15,7 @@ export async function startServer({ admins = [] } = {}) {
     },
   };
   const clock = { t: Date.parse('2026-10-30T12:00:00Z') };
-  const server = createServer({ dataDir, secret: 'test-secret-'.padEnd(64, 'x'), mailer, admins, now: () => clock.t });
+  const server = createServer({ dataDir, secret: 'test-secret-'.padEnd(64, 'x'), lang, mailer, admins, now: () => clock.t });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const base = 'http://127.0.0.1:' + server.address().port;
 

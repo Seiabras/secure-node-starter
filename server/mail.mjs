@@ -7,6 +7,8 @@
 // sends wait in a paced queue (MAIL_PER_SECOND, 8 by default) and a 429 from Resend is retried. With more than
 // MAIL_QUEUE_MAX waiting, the person gets "too many people right now" instead of a random failure.
 
+import { MAIL, siteLang } from './i18n.mjs';
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Pacing: each send waits for its turn; `false` when the queue is already full. */
@@ -41,6 +43,7 @@ export function createMailer({
   siteName = process.env.SITE_NAME || 'Secure Node Starter',
   siteUrl = process.env.SITE_URL || '',
   devPrint = process.env.DEV_PRINT_CODE === '1' && process.env.NODE_ENV !== 'production',
+  lang = siteLang(),
   fetchImpl = globalThis.fetch,
   pacer = createPacer({ perSecond: Number(process.env.MAIL_PER_SECOND) || 8, queueMax: Number(process.env.MAIL_QUEUE_MAX) || 600 }),
   wait = sleep,
@@ -82,21 +85,15 @@ export function createMailer({
         if (devPrint) console.log(`[dev] sign-in code for ${to}: ${code}`);
         return devPrint ? { ok: true } : { ok: false, reason: 'not configured' };
       }
+      const words = MAIL[lang];
       const name = escapeHtml(siteName);
-      const subject = `${code} is your ${siteName} code`;
-      const text = [
-        `Your code to sign in to ${siteName} is: ${code}`,
-        '',
-        'It is valid for 10 minutes and works only once.',
-        'If you did not ask for it, ignore this e-mail: nobody gets in without the code.',
-        '',
-        siteUrl,
-      ].join('\n');
+      const subject = words.subject(code, siteName);
+      const text = [`${words.intro(siteName)}: ${code}`, '', words.valid, words.ignore, '', siteUrl].join('\n');
       const html = `<div style="font-family:system-ui,sans-serif;font-size:16px;max-width:480px">
-<p>Your code to sign in to <b>${name}</b> is:</p>
+<p>${words.intro(`<b>${name}</b>`)}:</p>
 <p style="font-size:32px;font-weight:800;letter-spacing:8px;margin:16px 0">${escapeHtml(code)}</p>
-<p>It is valid for 10 minutes and works only once.</p>
-<p style="font-size:14px">If you did not ask for it, ignore this e-mail: nobody gets in without the code.</p></div>`;
+<p>${words.valid}</p>
+<p style="font-size:14px">${words.ignore}</p></div>`;
       return send({ to: [to], subject, text, html });
     },
   };

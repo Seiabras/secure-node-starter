@@ -1,5 +1,7 @@
 # Threat model
 
+[Leia em português](THREAT-MODEL.pt-BR.md)
+
 STRIDE, per element and trust boundary. Version 0.1.0, reviewed on 2026-10-30. Every mitigation names the file that
 implements it; most of them also have a test that tries to break it (`test/`). What is not mitigated is said so, in
 [Accepted risks](#6-accepted-risks).
