@@ -43,3 +43,9 @@ systemd, OpenSSH, Caddy). These are what came out of it, all fixed before the fi
 | `systemd-analyze security` | 1.2 OK |
 | gitleaks | no leaks |
 | Test server | deploy, rollback of a broken release, backup integrity (`PRAGMA integrity_check: ok`); the deploy key could not run another command, open a terminal or forward a port |
+
+## After the first release
+
+| ID | Found by | Severity | Problem | Fix | Test |
+|---|---|---|---|---|---|
+| F-19 | First CI run on GitHub | Bug | The documented ZAP exceptions never reached the scanner: the action hands `rules_file_name` to ZAP only when the file has an `IGNORE` line, and these are all `INFO`. ZAP counted them as warnings and failed the job, along with its cache report (10049) | The rules go in `cmd_options`; 10049 is documented in `.zap/rules.tsv` | CI, ZAP job |

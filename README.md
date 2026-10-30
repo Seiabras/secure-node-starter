@@ -64,7 +64,7 @@ test/               node:test, against a real server on a random port
 scripts/            check-headers.mjs: run it against localhost or a live site
 deploy/             install-once.sh, receive.sh, site.service, offsite-backup/
 .github/workflows/  ci.yml (tests, scans, deploy), codeql.yml, backup.yml
-.zap/rules.tsv      the two ZAP alerts treated as informational, and why
+.zap/rules.tsv      the three ZAP alerts treated as informational, and why
 ```
 
 ## Going live

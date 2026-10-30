@@ -64,7 +64,7 @@ test/               node:test, contra um servidor de verdade numa porta aleatór
 scripts/            check-headers.mjs: rode contra o localhost ou um site no ar
 deploy/             install-once.sh, receive.sh, site.service, offsite-backup/
 .github/workflows/  ci.yml (testes, varreduras, deploy), codeql.yml, backup.yml
-.zap/rules.tsv      os dois alertas do ZAP tratados como informativos, e por quê
+.zap/rules.tsv      os três alertas do ZAP tratados como informativos, e por quê
 ```
 
 ## Para pôr no ar
